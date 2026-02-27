@@ -178,29 +178,38 @@ async def okta_get_cookies(
     """
     session_path = session_store.get_session_path(url)
     if not session_path:
-        return json.dumps({
-            "error": "No stored session found for this URL",
-            "url": url,
-        }, indent=2)
+        return json.dumps(
+            {
+                "error": "No stored session found for this URL",
+                "url": url,
+            },
+            indent=2,
+        )
 
     try:
         with open(session_path, "r", encoding="utf-8") as f:
             data = json.load(f)
     except Exception as exc:
-        return json.dumps({
-            "error": f"Failed to read session file: {exc}",
-            "url": url,
-        }, indent=2)
+        return json.dumps(
+            {
+                "error": f"Failed to read session file: {exc}",
+                "url": url,
+            },
+            indent=2,
+        )
 
     cookies = data.get("cookies", [])
     if domain_filter:
         cookies = [c for c in cookies if domain_filter.lower() in c.get("domain", "").lower()]
 
-    return json.dumps({
-        "count": len(cookies),
-        "cookies": cookies,
-        "url": url,
-    }, indent=2)
+    return json.dumps(
+        {
+            "count": len(cookies),
+            "cookies": cookies,
+            "url": url,
+        },
+        indent=2,
+    )
 
 
 def main():

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
 
 from playwright.async_api import async_playwright
 
@@ -111,7 +111,9 @@ class BrowserController:
             self._browser = await browser_type.launch(**launch_kwargs)
         except Exception as exc:
             if channel_requested:
-                logger.warning("Channel '%s' failed: %s — retrying without channel.", self._config.channel, exc)
+                logger.warning(
+                    "Channel '%s' failed: %s — retrying without channel.", self._config.channel, exc
+                )
                 launch_kwargs.pop("channel", None)
                 self._browser = await browser_type.launch(**launch_kwargs)
             else:

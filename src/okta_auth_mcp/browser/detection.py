@@ -10,7 +10,6 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Iterable, List, Optional
 
-
 _CHANNEL_KEY_OVERRIDES = {
     "chrome": ("BROWSER_EXECUTABLE", "CHROME_PATH", "GOOGLE_CHROME_SHIM"),
     "chrome-beta": ("BROWSER_EXECUTABLE", "CHROME_BETA_PATH"),

@@ -7,10 +7,9 @@ Sessions are stored as Playwright storage_state JSON files under
 from __future__ import annotations
 
 import json
-import hashlib
 import time
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
 
 SESSIONS_DIR = Path.home() / ".okta-auth-mcp" / "sessions"
 
@@ -18,6 +17,7 @@ SESSIONS_DIR = Path.home() / ".okta-auth-mcp" / "sessions"
 def _domain_key(url: str) -> str:
     """Derive a filesystem-safe key from a URL's domain."""
     from urllib.parse import urlparse
+
     host = urlparse(url).netloc.lower()
     if not host:
         host = url.lower()

@@ -16,12 +16,16 @@ from urllib.parse import urlparse
 
 from playwright.async_api import Page
 
-from okta_auth_mcp.log import logger, debug_detail
-from okta_auth_mcp.auth.totp import gen_totp
 from okta_auth_mcp.auth import session_store
+from okta_auth_mcp.auth.totp import gen_totp
 from okta_auth_mcp.browser.controller import BrowserConfig, BrowserController
-from okta_auth_mcp.browser.helpers import fill_first_match, click_first_match, maybe_switch_to_code_factor
 from okta_auth_mcp.browser.detection import is_browser_channel_available
+from okta_auth_mcp.browser.helpers import (
+    click_first_match,
+    fill_first_match,
+    maybe_switch_to_code_factor,
+)
+from okta_auth_mcp.log import debug_detail, logger
 
 
 @dataclass
@@ -34,7 +38,7 @@ class LoginCredentials:
 # ---------- Selector banks ----------
 
 USERNAME_SELECTORS = [
-    '#okta-signin-username',
+    "#okta-signin-username",
     'input[name="identifier"]',
     'input[name="username"]',
     'input[autocomplete="username"]',
@@ -50,11 +54,11 @@ USERNAME_SELECTORS = [
     'input[name*="login"]',
     'input[name*="email"]',
     'input[type="text"]:visible',
-    'input:not([type]):visible',
+    "input:not([type]):visible",
 ]
 
 PASSWORD_SELECTORS = [
-    '#okta-signin-password',
+    "#okta-signin-password",
     'input[name="password"]',
     'input[autocomplete="current-password"]',
     'input[type="password"]',
@@ -71,7 +75,7 @@ SUBMIT_SELECTORS = [
     'input[type="submit"]',
     'button:has-text("Sign in")',
     'button:has-text("Log in")',
-    '#okta-signin-submit',
+    "#okta-signin-submit",
 ]
 
 NEXT_SELECTORS = [
@@ -108,7 +112,7 @@ MFA_SUBMIT_SELECTORS = [
 async def _is_on_portal(page: Page) -> bool:
     """Check if we've left Okta and are on the target portal."""
     host = urlparse(page.url).netloc.lower()
-    if 'okta' in host:
+    if "okta" in host:
         return False
     try:
         login_fields = page.locator(
@@ -131,7 +135,7 @@ async def auto_login(page: Page, creds: LoginCredentials) -> bool:
 
     # Wait for page load
     try:
-        await page.wait_for_load_state('networkidle', timeout=10000)
+        await page.wait_for_load_state("networkidle", timeout=10000)
     except Exception:
         pass
 
@@ -214,7 +218,7 @@ async def auto_login(page: Page, creds: LoginCredentials) -> bool:
             logger.info("Successfully authenticated — now on %s", urlparse(page.url).netloc)
             return True
 
-    if 'okta' in urlparse(page.url).netloc.lower():
+    if "okta" in urlparse(page.url).netloc.lower():
         logger.warning("Still on Okta domain after login attempt")
         return False
 
@@ -290,6 +294,7 @@ async def perform_login(
         }
     finally:
         import os
+
         try:
             os.unlink(tmp_path)
         except OSError:
