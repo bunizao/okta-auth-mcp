@@ -5,6 +5,7 @@ and verify session validity. Sessions are stored per-domain in ~/.okta-auth-mcp/
 """
 
 import json
+import os
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
@@ -30,8 +31,8 @@ mcp = FastMCP("okta_auth_mcp")
 )
 async def okta_login(
     url: str,
-    username: str,
-    password: str,
+    username: Optional[str] = None,
+    password: Optional[str] = None,
     totp_secret: Optional[str] = None,
     headed: bool = False,
     timeout_ms: int = 60000,
@@ -42,22 +43,41 @@ async def okta_login(
     (including TOTP MFA if configured), and saves the browser session for later use.
     Sessions are stored per-domain in ~/.okta-auth-mcp/sessions/.
 
+    Credentials are resolved in order: explicit parameter → environment variable.
+    Set OKTA_USERNAME, OKTA_PASSWORD, and optionally OKTA_TOTP_SECRET in your
+    shell so that AI agents never need to handle sensitive values directly.
+
     Args:
         url: Target URL to authenticate against (e.g., 'https://portal.company.com').
-        username: Okta username or email (e.g., 'user@company.com').
-        password: Okta password.
-        totp_secret: Base32 TOTP secret for automated MFA. If not provided and MFA is required, login will fail.
+        username: Okta username or email. Falls back to OKTA_USERNAME env var.
+        password: Okta password. Falls back to OKTA_PASSWORD env var.
+        totp_secret: Base32 TOTP secret for automated MFA. Falls back to OKTA_TOTP_SECRET env var.
         headed: Show the browser window during login. Set to true for debugging.
         timeout_ms: Maximum time in ms to wait for page loads (5000-300000, default 60000).
 
     Returns:
         JSON: {"success": bool, "domain_key": str|null, "message": str, "url": str}
     """
+    resolved_username = username or os.environ.get("OKTA_USERNAME")
+    resolved_password = password or os.environ.get("OKTA_PASSWORD")
+    resolved_totp = totp_secret or os.environ.get("OKTA_TOTP_SECRET")
+
+    if not resolved_username or not resolved_password:
+        return json.dumps(
+            {
+                "success": False,
+                "domain_key": None,
+                "message": "username and password are required. Pass them as arguments or set OKTA_USERNAME / OKTA_PASSWORD environment variables.",
+                "url": url,
+            },
+            indent=2,
+        )
+
     result = await perform_login(
         url=url,
-        username=username,
-        password=password,
-        totp_secret=totp_secret,
+        username=resolved_username,
+        password=resolved_password,
+        totp_secret=resolved_totp,
         headed=headed,
         timeout_ms=timeout_ms,
     )
