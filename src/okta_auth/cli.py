@@ -30,9 +30,9 @@ def build_parser() -> argparse.ArgumentParser:
     login_parser.add_argument("--password", help="Okta password.")
     login_parser.add_argument("--totp-secret", help="Base32 TOTP secret for MFA.")
     login_parser.add_argument(
-        "--headless",
+        "--headed",
         action="store_true",
-        help="Run the browser headlessly. Default is headed for interactive login.",
+        help="Show the browser window during login. Default is headless.",
     )
     login_parser.add_argument("--timeout-ms", type=int, default=60000, help="Page timeout in ms.")
     login_parser.add_argument("--json", action="store_true", help="Print raw JSON output.")
@@ -100,7 +100,7 @@ async def _run_login(args: argparse.Namespace) -> int:
         username=username,
         password=password,
         totp_secret=totp_secret,
-        headed=not args.headless,
+        headed=args.headed,
         timeout_ms=args.timeout_ms,
     )
     return _print_result(
@@ -228,7 +228,11 @@ def _format_login_message(result: dict[str, Any]) -> str:
     session_path = session_store.get_session_path(result["url"])
     message = result["message"]
     if session_path:
-        return f"{message}\nSession file: {session_path}"
+        return (
+            f"{message}\n"
+            f"Sensitive session data is stored locally under: {session_store.SESSIONS_DIR}\n"
+            f"Session file: {session_path}"
+        )
     return message
 
 

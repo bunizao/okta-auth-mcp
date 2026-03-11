@@ -13,14 +13,16 @@ Okta login toolkit with two entry points:
 Run `okta` with no arguments to start an interactive login flow:
 
 ```bash
-uv run okta
+okta
 ```
 
 You can also pass values directly:
 
 ```bash
-uv run okta https://portal.company.com --username you@company.com
+okta https://portal.company.com --username you@company.com
 ```
+
+The login flow is headless by default. Pass `--headed` if you want to see the browser window.
 
 Available commands:
 
@@ -161,10 +163,18 @@ You must **re-enroll** the authenticator factor to obtain a new secret:
 
 ## Installation
 
-### With uv
+### With uv tool
 
 ```bash
-uvx --from okta-auth okta
+uv tool install okta-auth
+okta
+```
+
+### With pipx
+
+```bash
+pipx install okta-auth
+okta
 ```
 
 ### With pip
