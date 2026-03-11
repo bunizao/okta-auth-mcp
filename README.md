@@ -100,7 +100,7 @@ OKTA_TOTP_SECRET=op://Personal/Okta MCP/totp_secret
 
 _Claude Code:_
 ```bash
-claude mcp add okta-auth -- op run --env-file=$HOME/.okta-auth/.env -- uvx --from okta-auth okta-auth
+claude mcp add okta-auth -- op run --env-file=$HOME/.okta-auth/.env -- uvx --from okta-auth-cli okta-auth
 ```
 
 _Claude Desktop / Cursor / Windsurf:_
@@ -109,7 +109,7 @@ _Claude Desktop / Cursor / Windsurf:_
   "mcpServers": {
     "okta-auth": {
       "command": "op",
-      "args": ["run", "--env-file=/Users/yourname/.okta-auth/.env", "--", "uvx", "--from", "okta-auth", "okta-auth"]
+      "args": ["run", "--env-file=/Users/yourname/.okta-auth/.env", "--", "uvx", "--from", "okta-auth-cli", "okta-auth"]
     }
   }
 }
@@ -166,21 +166,21 @@ You must **re-enroll** the authenticator factor to obtain a new secret:
 ### With uv tool
 
 ```bash
-uv tool install okta-auth
+uv tool install okta-auth-cli
 okta
 ```
 
 ### With pipx
 
 ```bash
-pipx install okta-auth
+pipx install okta-auth-cli
 okta
 ```
 
 ### With pip
 
 ```bash
-pip install okta-auth
+pip install okta-auth-cli
 okta
 ```
 
@@ -199,7 +199,7 @@ playwright install chromium
 ### Claude Code
 
 ```bash
-claude mcp add okta-auth -- uvx --from okta-auth okta-auth
+claude mcp add okta-auth -- uvx --from okta-auth-cli okta-auth
 ```
 
 ### Claude Desktop / Cursor / Windsurf
@@ -209,7 +209,7 @@ claude mcp add okta-auth -- uvx --from okta-auth okta-auth
   "mcpServers": {
     "okta-auth": {
       "command": "uvx",
-      "args": ["--from", "okta-auth", "okta-auth"]
+      "args": ["--from", "okta-auth-cli", "okta-auth"]
     }
   }
 }

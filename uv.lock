@@ -518,8 +518,8 @@ wheels = [
 ]
 
 [[package]]
-name = "okta-auth"
-version = "0.1.0"
+name = "okta-auth-cli"
+version = "0.1.1"
 source = { editable = "." }
 dependencies = [
     { name = "mcp", extra = ["cli"] },

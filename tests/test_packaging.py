@@ -7,7 +7,7 @@ def test_project_scripts_include_okta_cli() -> None:
     with pyproject_path.open("rb") as file:
         pyproject = tomllib.load(file)
 
-    assert pyproject["project"]["name"] == "okta-auth"
+    assert pyproject["project"]["name"] == "okta-auth-cli"
 
     scripts = pyproject["project"]["scripts"]
 
