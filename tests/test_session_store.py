@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from okta_auth_mcp.auth import session_store
+from okta_auth.auth import session_store
 
 
 def _write_storage_state(
@@ -46,3 +46,25 @@ def test_is_session_effective_handles_bad_json(tmp_path, monkeypatch) -> None:
     broken.write_text("{bad json", encoding="utf-8")
 
     assert session_store.is_session_effective("https://portal.example.com") is False
+
+
+def test_ensure_sessions_dir_migrates_legacy_sessions(tmp_path, monkeypatch) -> None:
+    new_data_dir = tmp_path / ".okta-auth"
+    legacy_data_dir = tmp_path / ".okta-auth-mcp"
+    new_sessions_dir = new_data_dir / "sessions"
+    legacy_sessions_dir = legacy_data_dir / "sessions"
+
+    monkeypatch.setattr(session_store, "DATA_DIR", new_data_dir)
+    monkeypatch.setattr(session_store, "LEGACY_DATA_DIR", legacy_data_dir)
+    monkeypatch.setattr(session_store, "SESSIONS_DIR", new_sessions_dir)
+    monkeypatch.setattr(session_store, "LEGACY_SESSIONS_DIR", legacy_sessions_dir)
+
+    legacy_sessions_dir.mkdir(parents=True)
+    stored = legacy_sessions_dir / "portal.example.com.json"
+    stored.write_text('{"cookies":[{"name":"sid"}],"origins":[]}', encoding="utf-8")
+
+    ensured = session_store.ensure_sessions_dir()
+
+    assert ensured == new_sessions_dir
+    assert (new_sessions_dir / "portal.example.com.json").exists()
+    assert not stored.exists()

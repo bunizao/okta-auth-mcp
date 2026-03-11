@@ -1,4 +1,4 @@
-from okta_auth_mcp import server
+from okta_auth import server
 
 
 def test_server_exports_tools() -> None:

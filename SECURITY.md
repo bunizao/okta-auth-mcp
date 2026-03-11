@@ -8,7 +8,7 @@ This project is in active development. Only the latest release is supported.
 
 Please report vulnerabilities privately via GitHub Security Advisories:
 
-- Open: `https://github.com/bunizao/okta-auth-mcp/security/advisories/new`
+- Open: `https://github.com/bunizao/okta-auth/security/advisories/new`
 
 Do not open public issues for credential/session handling vulnerabilities.
 

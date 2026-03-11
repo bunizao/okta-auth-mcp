@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 else:
     Browser = BrowserContext = Playwright = Any
 
-from okta_auth_mcp.log import logger
+from okta_auth.log import logger
 
 
 @dataclass

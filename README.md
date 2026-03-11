@@ -1,11 +1,36 @@
-# okta-auth-mcp
+# okta-auth
 
 > **Alpha** — this project is under active development and iterating quickly.
 > APIs, tool signatures, and session formats may change between releases.
 
-MCP server that performs Okta SSO login through Playwright and persists per-domain session state for reuse by AI agents.
+Okta login toolkit with two entry points:
 
-## What It Provides
+- `okta`: interactive CLI for humans to log in and save a session locally
+- `okta-auth`: MCP server for AI agents that reuse those sessions
+
+## CLI Usage
+
+Run `okta` with no arguments to start an interactive login flow:
+
+```bash
+uv run okta
+```
+
+You can also pass values directly:
+
+```bash
+uv run okta https://portal.company.com --username you@company.com
+```
+
+Available commands:
+
+- `okta [url]`: log in and save a session
+- `okta check <url>`: verify a saved session
+- `okta list`: list saved sessions
+- `okta delete <url>`: delete a saved session
+- `okta cookies <url>`: inspect stored cookies
+
+## MCP Tools
 
 | Tool | Description |
 |------|-------------|
@@ -15,11 +40,12 @@ MCP server that performs Okta SSO login through Playwright and persists per-doma
 | `okta_delete_session` | Remove a stored session |
 | `okta_get_cookies` | Retrieve cookies from stored session (sensitive) |
 
-Sessions are stored under `~/.okta-auth-mcp/sessions/`.
+Sessions are stored under `~/.okta-auth/sessions/`. Existing sessions under
+`~/.okta-auth-mcp/sessions/` are migrated automatically.
 
 ## Security Model
 
-- This server is intended for **local trusted execution**.
+- This project is intended for **local trusted execution**.
 - Session files and cookies are sensitive credentials; protect the host account.
 - Prefer private/internal usage unless security controls are reviewed.
 - **Never pass credentials as tool arguments** — use environment variables so that AI agents never see your username, password, or TOTP secret in their context.
@@ -28,7 +54,7 @@ Sessions are stored under `~/.okta-auth-mcp/sessions/`.
 
 ### Environment Variables
 
-Set credentials in your shell profile so they are inherited by the MCP server process. The AI agent only needs to pass the target URL.
+Set credentials in your shell profile so they are inherited by the CLI or MCP server process.
 
 ```bash
 # Add to ~/.zshrc or ~/.zprofile (zsh) / ~/.bashrc (bash)
@@ -46,6 +72,70 @@ okta_login(url="https://portal.company.com")
 ```
 
 Explicit arguments still override environment variables if needed.
+
+### 1Password CLI
+
+[`op run`](https://developer.1password.com/docs/cli/secrets-scripts/) injects secrets at process launch time. No plaintext credentials appear in shell profiles, config files, or environment variables — they live only in 1Password.
+
+**1. Store credentials in 1Password** (one-time setup):
+
+```bash
+op item create --category login --title "Okta MCP" \
+  username="you@company.com" \
+  password="your-okta-password" \
+  totp_secret="JBSWY3DPEHPK3PXP"
+```
+
+**2. Create a secrets reference file** at `~/.okta-auth/.env` (contains paths, not values):
+
+```bash
+OKTA_USERNAME=op://Personal/Okta MCP/username
+OKTA_PASSWORD=op://Personal/Okta MCP/password
+OKTA_TOTP_SECRET=op://Personal/Okta MCP/totp_secret
+```
+
+**3. Update your MCP client config** to wrap the server with `op run`:
+
+_Claude Code:_
+```bash
+claude mcp add okta-auth -- op run --env-file=$HOME/.okta-auth/.env -- uvx --from okta-auth okta-auth
+```
+
+_Claude Desktop / Cursor / Windsurf:_
+```json
+{
+  "mcpServers": {
+    "okta-auth": {
+      "command": "op",
+      "args": ["run", "--env-file=/Users/yourname/.okta-auth/.env", "--", "uvx", "--from", "okta-auth", "okta-auth"]
+    }
+  }
+}
+```
+
+`op run` prompts for biometric/Touch ID once per session. Install 1Password CLI via `brew install 1password-cli`.
+
+### macOS Keychain
+
+A built-in alternative that requires no extra tools. Credentials are stored in the system Keychain and fetched on each shell startup.
+
+**Store** (one-time, run in terminal):
+
+```bash
+security add-generic-password -a okta-mcp -s OKTA_USERNAME    -w "you@company.com"
+security add-generic-password -a okta-mcp -s OKTA_PASSWORD    -w "your-okta-password"
+security add-generic-password -a okta-mcp -s OKTA_TOTP_SECRET -w "JBSWY3DPEHPK3PXP"
+```
+
+**Load** in `~/.zshrc` or `~/.zprofile`:
+
+```bash
+export OKTA_USERNAME=$(security find-generic-password    -a okta-mcp -s OKTA_USERNAME    -w 2>/dev/null)
+export OKTA_PASSWORD=$(security find-generic-password    -a okta-mcp -s OKTA_PASSWORD    -w 2>/dev/null)
+export OKTA_TOTP_SECRET=$(security find-generic-password -a okta-mcp -s OKTA_TOTP_SECRET -w 2>/dev/null)
+```
+
+macOS may prompt for Keychain access on the first load after a reboot.
 
 ### How to Get Your TOTP Secret Key
 
@@ -74,13 +164,14 @@ You must **re-enroll** the authenticator factor to obtain a new secret:
 ### With uv
 
 ```bash
-uvx okta-auth-mcp
+uvx --from okta-auth okta
 ```
 
 ### With pip
 
 ```bash
-pip install okta-auth-mcp
+pip install okta-auth
+okta
 ```
 
 ### Browser setup
@@ -98,7 +189,7 @@ playwright install chromium
 ### Claude Code
 
 ```bash
-claude mcp add okta-auth -- uvx okta-auth-mcp
+claude mcp add okta-auth -- uvx --from okta-auth okta-auth
 ```
 
 ### Claude Desktop / Cursor / Windsurf
@@ -108,11 +199,13 @@ claude mcp add okta-auth -- uvx okta-auth-mcp
   "mcpServers": {
     "okta-auth": {
       "command": "uvx",
-      "args": ["okta-auth-mcp"]
+      "args": ["--from", "okta-auth", "okta-auth"]
     }
   }
 }
 ```
+
+Use `okta` for the interactive CLI. Use `okta-auth` only when wiring the package into an MCP client.
 
 ## Development
 

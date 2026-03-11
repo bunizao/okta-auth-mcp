@@ -9,7 +9,7 @@ import sys
 _handler = logging.StreamHandler(sys.stderr)
 _handler.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))
 
-logger = logging.getLogger("okta_auth_mcp")
+logger = logging.getLogger("okta_auth")
 logger.addHandler(_handler)
 logger.setLevel(logging.INFO)
 

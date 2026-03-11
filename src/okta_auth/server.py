@@ -1,7 +1,7 @@
-"""okta_auth_mcp — MCP server for Okta SSO authentication with persistent session management.
+"""okta_auth — MCP server for Okta SSO authentication with persistent session management.
 
 Provides tools for AI agents to authenticate via Okta SSO, persist browser sessions,
-and verify session validity. Sessions are stored per-domain in ~/.okta-auth-mcp/sessions/.
+and verify session validity. Sessions are stored per-domain in ~/.okta-auth/sessions/.
 """
 
 import json
@@ -10,10 +10,10 @@ from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
-from okta_auth_mcp.auth import session_store
-from okta_auth_mcp.auth.login import perform_login, verify_session
+from okta_auth.auth import session_store
+from okta_auth.auth.login import perform_login, verify_session
 
-mcp = FastMCP("okta_auth_mcp")
+mcp = FastMCP("okta_auth")
 
 
 # ── Tools ─────────────────────────────────────────────────────────────────────
@@ -41,7 +41,7 @@ async def okta_login(
 
     Launches a headless browser, navigates to the target URL, performs Okta login
     (including TOTP MFA if configured), and saves the browser session for later use.
-    Sessions are stored per-domain in ~/.okta-auth-mcp/sessions/.
+    Sessions are stored per-domain in ~/.okta-auth/sessions/.
 
     Credentials are resolved in order: explicit parameter → environment variable.
     Set OKTA_USERNAME, OKTA_PASSWORD, and optionally OKTA_TOTP_SECRET in your
@@ -155,7 +155,7 @@ async def okta_list_sessions() -> str:
 async def okta_delete_session(url: str) -> str:
     """Delete a stored session for a given URL.
 
-    Removes the session file and metadata from ~/.okta-auth-mcp/sessions/.
+    Removes the session file and metadata from ~/.okta-auth/sessions/.
     The agent will need to re-authenticate to access the service again.
 
     Args:

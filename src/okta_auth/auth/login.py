@@ -16,16 +16,16 @@ from urllib.parse import urlparse
 
 from playwright.async_api import Page
 
-from okta_auth_mcp.auth import session_store
-from okta_auth_mcp.auth.totp import gen_totp
-from okta_auth_mcp.browser.controller import BrowserConfig, BrowserController
-from okta_auth_mcp.browser.detection import is_browser_channel_available
-from okta_auth_mcp.browser.helpers import (
+from okta_auth.auth import session_store
+from okta_auth.auth.totp import gen_totp
+from okta_auth.browser.controller import BrowserConfig, BrowserController
+from okta_auth.browser.detection import is_browser_channel_available
+from okta_auth.browser.helpers import (
     click_first_match,
     fill_first_match,
     maybe_switch_to_code_factor,
 )
-from okta_auth_mcp.log import debug_detail, logger
+from okta_auth.log import debug_detail, logger
 
 
 @dataclass

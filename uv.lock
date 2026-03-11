@@ -518,7 +518,7 @@ wheels = [
 ]
 
 [[package]]
-name = "okta-auth-mcp"
+name = "okta-auth"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
