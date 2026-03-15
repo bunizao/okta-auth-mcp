@@ -16,6 +16,16 @@ Run `okta` with no arguments to start an interactive login flow:
 okta
 ```
 
+Run `okta config` to open the interactive credential wizard:
+
+```bash
+okta config
+```
+
+The wizard stores `OKTA_USERNAME`, `OKTA_PASSWORD`, and optional `OKTA_TOTP_SECRET`
+in your OS credential manager, and stores only the optional default portal URL in
+`~/.okta-auth/config.json`.
+
 You can also pass values directly:
 
 ```bash
@@ -27,6 +37,9 @@ The login flow is headless by default. Pass `--headed` if you want to see the br
 Available commands:
 
 - `okta [url]`: log in and save a session
+- `okta config`: open the TUI credential wizard
+- `okta config --show`: inspect stored credential status without revealing secrets
+- `okta config --reset`: delete stored credentials and local settings
 - `okta check <url>`: verify a saved session
 - `okta list`: list saved sessions
 - `okta delete <url>`: delete a saved session
@@ -50,13 +63,43 @@ Sessions are stored under `~/.okta-auth/sessions/`. Existing sessions under
 - This project is intended for **local trusted execution**.
 - Session files and cookies are sensitive credentials; protect the host account.
 - Prefer private/internal usage unless security controls are reviewed.
-- **Never pass credentials as tool arguments** — use environment variables so that AI agents never see your username, password, or TOTP secret in their context.
+- Prefer `okta config` so secrets are stored in the OS keyring instead of shell files.
+- **Never pass credentials as tool arguments** unless you explicitly accept that risk.
 
 ## Credentials Setup
 
+Credential resolution order is:
+
+1. Explicit CLI or MCP arguments
+2. Environment variables
+3. Credentials saved by `okta config` in the OS keyring
+
+### Recommended: `okta config`
+
+The recommended local setup is the built-in TUI wizard:
+
+```bash
+okta config
+```
+
+What it stores:
+
+- `username`, `password`, `totp_secret`: OS keyring only
+- `default_url`: `~/.okta-auth/config.json`
+
+Backends used by `keyring` typically map to:
+
+- macOS: Keychain Access
+- Windows: Credential Locker / Windows Credential Manager
+- Linux: Secret Service or KWallet
+
+If no secure backend is available, the wizard refuses to save credentials rather than
+falling back to plaintext files.
+
 ### Environment Variables
 
-Set credentials in your shell profile so they are inherited by the CLI or MCP server process.
+Environment variables remain supported for CI, ephemeral shells, or when you prefer an
+external secret manager. They override any credentials saved by `okta config`.
 
 ```bash
 # Add to ~/.zshrc or ~/.zprofile (zsh) / ~/.bashrc (bash)
@@ -167,6 +210,7 @@ You must **re-enroll** the authenticator factor to obtain a new secret:
 
 ```bash
 uv tool install okta-auth-cli
+okta config
 okta
 ```
 
@@ -174,6 +218,7 @@ okta
 
 ```bash
 pipx install okta-auth-cli
+okta config
 okta
 ```
 
@@ -181,6 +226,7 @@ okta
 
 ```bash
 pip install okta-auth-cli
+okta config
 okta
 ```
 
