@@ -12,6 +12,7 @@ from mcp.server.fastmcp import FastMCP
 
 from okta_auth.auth import session_store
 from okta_auth.auth.login import perform_login, verify_session
+from okta_auth.credential_store import load_credentials as load_stored_credentials
 
 mcp = FastMCP("okta_auth")
 
@@ -43,31 +44,37 @@ async def okta_login(
     (including TOTP MFA if configured), and saves the browser session for later use.
     Sessions are stored per-domain in ~/.okta-auth/sessions/.
 
-    Credentials are resolved in order: explicit parameter → environment variable.
-    Set OKTA_USERNAME, OKTA_PASSWORD, and optionally OKTA_TOTP_SECRET in your
-    shell so that AI agents never need to handle sensitive values directly.
+    Credentials are resolved in order: explicit parameter → environment variable
+    → OS keyring. Run `okta config` locally to store credentials in the system
+    credential manager without exposing them to AI agents.
 
     Args:
         url: Target URL to authenticate against (e.g., 'https://portal.company.com').
-        username: Okta username or email. Falls back to OKTA_USERNAME env var.
-        password: Okta password. Falls back to OKTA_PASSWORD env var.
-        totp_secret: Base32 TOTP secret for automated MFA. Falls back to OKTA_TOTP_SECRET env var.
+        username: Okta username or email. Falls back to OKTA_USERNAME or stored keyring data.
+        password: Okta password. Falls back to OKTA_PASSWORD or stored keyring data.
+        totp_secret: Base32 TOTP secret for automated MFA. Falls back to OKTA_TOTP_SECRET or stored keyring data.
         headed: Show the browser window during login. Set to true for debugging.
         timeout_ms: Maximum time in ms to wait for page loads (5000-300000, default 60000).
 
     Returns:
         JSON: {"success": bool, "domain_key": str|null, "message": str, "url": str}
     """
-    resolved_username = username or os.environ.get("OKTA_USERNAME")
-    resolved_password = password or os.environ.get("OKTA_PASSWORD")
-    resolved_totp = totp_secret or os.environ.get("OKTA_TOTP_SECRET")
+    stored_credentials = load_stored_credentials()
+    resolved_username = username or os.environ.get("OKTA_USERNAME") or stored_credentials.username
+    resolved_password = password or os.environ.get("OKTA_PASSWORD") or stored_credentials.password
+    resolved_totp = (
+        totp_secret or os.environ.get("OKTA_TOTP_SECRET") or stored_credentials.totp_secret
+    )
 
     if not resolved_username or not resolved_password:
         return json.dumps(
             {
                 "success": False,
                 "domain_key": None,
-                "message": "username and password are required. Pass them as arguments or set OKTA_USERNAME / OKTA_PASSWORD environment variables.",
+                "message": (
+                    "username and password are required. Pass them as arguments, set "
+                    "OKTA_USERNAME / OKTA_PASSWORD, or run `okta config`."
+                ),
                 "url": url,
             },
             indent=2,

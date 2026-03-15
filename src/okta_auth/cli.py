@@ -12,6 +12,10 @@ from typing import Any, Sequence
 
 from okta_auth.auth import session_store
 from okta_auth.auth.login import perform_login, verify_session
+from okta_auth.config_wizard import ConfigWizard
+from okta_auth.credential_store import CredentialStoreError, clear_credentials, get_store_status
+from okta_auth.credential_store import load_credentials as load_stored_credentials
+from okta_auth.settings import clear_settings, describe_settings, load_settings
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -57,6 +61,15 @@ def build_parser() -> argparse.ArgumentParser:
     cookies_parser.add_argument("--domain", help="Optional domain substring filter.")
     cookies_parser.add_argument("--json", action="store_true", help="Print raw JSON output.")
 
+    config_parser = subparsers.add_parser(
+        "config",
+        help="Open the interactive credential wizard or inspect stored configuration.",
+    )
+    config_parser.add_argument("--show", action="store_true", help="Show stored config status.")
+    config_parser.add_argument("--reset", action="store_true", help="Delete stored credentials.")
+    config_parser.add_argument("--yes", action="store_true", help="Skip the reset confirmation.")
+    config_parser.add_argument("--json", action="store_true", help="Print raw JSON output.")
+
     return parser
 
 
@@ -68,7 +81,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.print_help()
         return 0
 
-    if not raw_args or raw_args[0] not in {"login", "check", "list", "delete", "cookies"}:
+    if not raw_args or raw_args[0] not in {"login", "check", "list", "delete", "cookies", "config"}:
         raw_args.insert(0, "login")
 
     args = parser.parse_args(raw_args)
@@ -86,14 +99,34 @@ async def run_cli(args: argparse.Namespace) -> int:
         return _run_delete(args)
     if args.command == "cookies":
         return _run_cookies(args)
+    if args.command == "config":
+        return _run_config(args)
     raise AssertionError(f"Unsupported command: {args.command}")
 
 
 async def _run_login(args: argparse.Namespace) -> int:
-    url = _require_value(args.url, "Target URL", secret=False)
-    username = _resolve_login_value(args.username, "OKTA_USERNAME", "Username")
-    password = _resolve_login_value(args.password, "OKTA_PASSWORD", "Password", secret=True)
-    totp_secret = _resolve_optional_value(args.totp_secret, "OKTA_TOTP_SECRET", "TOTP secret")
+    stored_settings = load_settings()
+    stored_credentials = load_stored_credentials()
+    url = _require_value(args.url or stored_settings.default_url, "Target URL", secret=False)
+    username = _resolve_login_value(
+        args.username,
+        "OKTA_USERNAME",
+        stored_credentials.username,
+        "Username",
+    )
+    password = _resolve_login_value(
+        args.password,
+        "OKTA_PASSWORD",
+        stored_credentials.password,
+        "Password",
+        secret=True,
+    )
+    totp_secret = _resolve_optional_value(
+        args.totp_secret,
+        "OKTA_TOTP_SECRET",
+        stored_credentials.totp_secret,
+        "TOTP secret",
+    )
 
     result = await perform_login(
         url=url,
@@ -190,6 +223,17 @@ def _run_cookies(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_config(args: argparse.Namespace) -> int:
+    if args.show:
+        return _show_config_status(use_json=args.json)
+    if args.reset:
+        return _reset_config(args)
+    if args.json:
+        print(json.dumps({"error": "--json is only supported with --show or --reset"}, indent=2))
+        return 1
+    return ConfigWizard().run()
+
+
 def _require_value(value: str | None, label: str, *, secret: bool) -> str:
     if value:
         return value
@@ -206,15 +250,25 @@ def _require_value(value: str | None, label: str, *, secret: bool) -> str:
 def _resolve_login_value(
     explicit_value: str | None,
     env_name: str,
+    stored_value: str | None,
     label: str,
     *,
     secret: bool = False,
 ) -> str:
-    return _require_value(explicit_value or os.environ.get(env_name), label, secret=secret)
+    return _require_value(
+        explicit_value or os.environ.get(env_name) or stored_value,
+        label,
+        secret=secret,
+    )
 
 
-def _resolve_optional_value(explicit_value: str | None, env_name: str, label: str) -> str | None:
-    value = explicit_value or os.environ.get(env_name)
+def _resolve_optional_value(
+    explicit_value: str | None,
+    env_name: str,
+    stored_value: str | None,
+    label: str,
+) -> str | None:
+    value = explicit_value or os.environ.get(env_name) or stored_value
     if value:
         return value
     if not sys.stdin.isatty():
@@ -238,6 +292,69 @@ def _format_login_message(result: dict[str, Any]) -> str:
 
 def _format_check_message(result: dict[str, Any]) -> str:
     return f"{result['message']} ({result['domain_key']})"
+
+
+def _show_config_status(*, use_json: bool) -> int:
+    credential_status = get_store_status()
+    settings_status = describe_settings()
+    payload = {
+        "keyring_available": credential_status["available"],
+        "keyring_backend": credential_status["backend"],
+        "keyring_error": credential_status["error"],
+        "username": credential_status.get("username"),
+        "password_stored": credential_status.get("password_stored", False),
+        "totp_secret_stored": credential_status.get("totp_secret_stored", False),
+        "default_url": settings_status["default_url"],
+        "config_path": settings_status["config_path"],
+    }
+
+    if use_json:
+        print(json.dumps(payload, indent=2))
+        return 0
+
+    print(f"Keyring available: {'yes' if payload['keyring_available'] else 'no'}")
+    print(f"Keyring backend: {payload['keyring_backend']}")
+    if payload["keyring_error"]:
+        print(f"Keyring error: {payload['keyring_error']}")
+    print(f"Username: {payload['username'] or '(not set)'}")
+    print(f"Password stored: {'yes' if payload['password_stored'] else 'no'}")
+    print(f"TOTP secret stored: {'yes' if payload['totp_secret_stored'] else 'no'}")
+    print(f"Default URL: {payload['default_url'] or '(not set)'}")
+    print(f"Settings file: {payload['config_path']}")
+    return 0
+
+
+def _reset_config(args: argparse.Namespace) -> int:
+    if not args.yes:
+        if not sys.stdin.isatty():
+            print("--reset requires --yes in non-interactive mode.", file=sys.stderr)
+            return 1
+
+        confirmed = input("Delete stored credentials and local settings? [y/N]: ").strip().lower()
+        if confirmed not in {"y", "yes"}:
+            message = "Reset cancelled."
+            if args.json:
+                print(json.dumps({"deleted": False, "message": message}, indent=2))
+            else:
+                print(message)
+            return 1
+
+    try:
+        clear_credentials()
+    except CredentialStoreError as exc:
+        if args.json:
+            print(json.dumps({"deleted": False, "message": str(exc)}, indent=2))
+        else:
+            print(str(exc), file=sys.stderr)
+        return 1
+
+    clear_settings()
+    payload = {"deleted": True, "message": "Stored credentials and local settings deleted."}
+    if args.json:
+        print(json.dumps(payload, indent=2))
+    else:
+        print(payload["message"])
+    return 0
 
 
 def _print_result(
