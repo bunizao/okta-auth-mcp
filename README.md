@@ -58,6 +58,9 @@ Run the built-in wizard:
 okta config
 ```
 
+If the wizard asks for a TOTP secret and you are not sure where to find it, see
+[TOTP Secret](#totp-secret).
+
 The wizard supports two providers:
 
 - `keyring`: store credentials in the OS credential manager
@@ -84,6 +87,27 @@ The login flow is headless by default. Use `--headed` to show the browser.
 
 Once configured, AI agents can authenticate with the saved session or with the
 credential provider you configured.
+
+## TOTP Secret
+
+The TOTP secret is the Base32 key behind your authenticator app. You typically
+must capture it during initial MFA enrollment.
+
+### During Okta MFA setup
+
+1. Go to **Settings -> Security Methods** in Okta.
+2. Choose **Google Authenticator** or another TOTP-compatible factor.
+3. On the QR screen, click **Can't scan?**
+4. Copy the displayed Base32 secret.
+5. Complete enrollment by entering the generated code.
+
+This project does not currently support portals that rely only on the Okta Verify
+push app for MFA.
+
+### If you already enrolled and lost the secret
+
+You usually need to remove and re-enroll the authenticator factor to get a new
+secret.
 
 ## Credential Setup
 
@@ -262,27 +286,6 @@ into an MCP client.
 - Prefer `okta config` over passing credentials directly on the command line.
 - Prefer `keyring` or `op run` over plaintext shell files.
 - Never post cookie values, passwords, or TOTP secrets in issues or logs.
-
-## TOTP Secret
-
-The TOTP secret is the Base32 key behind your authenticator app. You typically
-must capture it during initial MFA enrollment.
-
-### During Okta MFA setup
-
-1. Go to **Settings -> Security Methods** in Okta.
-2. Choose **Google Authenticator** or another TOTP-compatible factor.
-3. On the QR screen, click **Can't scan?**
-4. Copy the displayed Base32 secret.
-5. Complete enrollment by entering the generated code.
-
-This project does not currently support portals that rely only on the Okta Verify
-push app for MFA.
-
-### If you already enrolled and lost the secret
-
-You usually need to remove and re-enroll the authenticator factor to get a new
-secret.
 
 ## Development
 

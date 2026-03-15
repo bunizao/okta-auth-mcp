@@ -14,6 +14,9 @@ from okta_auth import credential_store, settings
 InputFunc = Callable[[str], str]
 SecretInputFunc = Callable[[str], str]
 PrintFunc = Callable[..., None]
+TOTP_SECRET_GUIDE_URL = (
+    "https://github.com/bunizao/okta-auth?tab=readme-ov-file#totp-secret"
+)
 
 
 @dataclass
@@ -243,6 +246,7 @@ class ConfigWizard:
                 f"Current TOTP secret: {'stored' if totp_secret_stored else '(not set)'}",
                 "This field is optional. Leave it blank to keep the current value.",
                 "Type `none` to remove the stored TOTP secret.",
+                f"Need help finding your TOTP secret? See: {TOTP_SECRET_GUIDE_URL}",
             ],
         )
         entered = self._input("TOTP secret: ").strip()

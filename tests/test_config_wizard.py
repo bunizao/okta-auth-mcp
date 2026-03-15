@@ -229,3 +229,18 @@ def test_config_wizard_rejects_invalid_op_reference_name(monkeypatch, capsys) ->
 
     assert exit_code == 1
     assert "unsupported characters" in capsys.readouterr().err
+
+
+def test_totp_prompt_shows_guide_link() -> None:
+    printed: list[str] = []
+    wizard = config_wizard.ConfigWizard(
+        input_func=lambda prompt="": "",
+        print_func=lambda *args, **kwargs: printed.append(" ".join(str(arg) for arg in args)),
+        stdin=_TTY(),
+        stdout=_TTY(),
+    )
+
+    result = wizard._prompt_totp_secret(current="OLDSECRET", totp_secret_stored=True)
+
+    assert result == "OLDSECRET"
+    assert any(config_wizard.TOTP_SECRET_GUIDE_URL in line for line in printed)
